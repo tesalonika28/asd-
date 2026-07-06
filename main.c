@@ -43,3 +43,15 @@ float inputFloat(char* prompt) {
         printf("input tidak valid. silahkan masukkan string yang valid!\n");
     }
  }
+ //fungsi proteksi input (validasi string yang kososng)
+ void inputString(char* prompt, char* str, int size) {  
+    while (1) {
+        printf("%s", prompt);
+        fgets(str, size, stdin);
+        str[strcspn(str, "\n")] = '\0';
+        if (strlen(str) > 0) {
+            break;
+        }
+        printf("input tidak valid. silahkan masukkan string yang valid!\n");
+    }
+ }
