@@ -45,11 +45,11 @@ float inputFloat(char* prompt) {
  }
  //fungsi proteksi input (validasi string yang kososng)
  void inputString(char* prompt, char* str, int size) {  
-    while (1) {
-        printf("%s", prompt);
-        fgets(str, size, stdin);
-        str[strcspn(str, "\n")] = '\0';
-        if (strlen(str) > 0) {
+    while (1) {                             //pengulangan input ketika valid
+        printf("%s", prompt);              //menampilkan baris input jika valid
+        fgets(str, size, stdin);          //membaca input string dari keyboard
+        str[strcspn(str, "\n")] = '\0';   // mengecek apakah string Tidak kosong
+        if (strlen(str) > 0) {            //keluar dari perulangan jika input sudah valid 
             break;
         }
         printf("input tidak valid. silahkan masukkan string yang valid!\n");
