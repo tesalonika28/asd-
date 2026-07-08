@@ -43,3 +43,4 @@ float inputFloat(char* prompt) {
         printf("input tidak valid. silahkan masukkan string yang valid!\n");
     }
  }
+
