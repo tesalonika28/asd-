@@ -47,7 +47,7 @@ void inputString(char* prompt, char* str, int size) {
     }
 }
 
-// Fungsi buat masukin data dari file ke linkedlist yhahaha
+// Fungsi buat masukin data dari file ke linkedlist paling belakang
 void pushBack(node** head, int id, char nama[], float berat, char status[], float total) {
     node* newNode = (node*)malloc(sizeof(node));
     newNode->id = id;
@@ -57,31 +57,36 @@ void pushBack(node** head, int id, char nama[], float berat, char status[], floa
     newNode->total = total;
     newNode->next = NULL;
 
+    // memasukan node baru ke dalam list utama
     if (*head == NULL) {
-        *head = newNode;
+        *head = newNode; //Kalo head atau start = kosong, maka node yang baru adalah head
     } else {
-        node* temp = *head;
+        node* temp = *head; // Kalo udah ada isinya, pake temp bantuan buat jalan selangkah lebih depan
         while (temp->next != NULL) {
-            temp = temp->next;
+            temp = temp->next;  // ngegeser pointer temp ke list berikutnya
         }
-        temp->next = newNode;
+        temp->next = newNode; // Kalo node udah mentok (Keisi semua data yang dibutuhkan), bakal pindah ke newnode (node baru) tapi tetap terhubung dari node-node sebelumnya
     }
 }
 
+// fungsi buat ngambil ID list terakhir dari file
 int increment() {
-    FILE* file = fopen(FILE_NAME, "r");
-    if (file == NULL) return 1;
+    FILE* file = fopen(FILE_NAME, "r"); // Ngebuka file dengan mode read
+    if (file == NULL) return 1; // Kalo filenya kosong maka bakal ngembaliin angka 1
+    // Deklarasi variabel sementara buat nampung pas sistem ngebaca
     int id, lastId = 0;
     char nama[50], status[20];
     float berat, total;
+
+    // Looping buat ngebaca seluruh baris file sampe akhir
     while (fscanf(file, "%d %49s %f %19s %f", &id, nama, &berat, status, &total) == 5) {
-        lastId = id;
+        lastId = id;  //Variabel last id bakal terus ditimpa dengan yang dibaca kemudian menyimpan ID yang ditemukan paling akhir
     }
     fclose(file);
-    return lastId + 1;
+    return lastId + 1; // Ngembaliin last id + 1 buat inputan pelanggan baru
 }
 
-// Mengganti nama fungsi 'refresh' menjadi 'freeList' agar match dengan CRUD kamu bawah
+// Fungsi buat menghapus memory linked list di RAM
 void freeList(node** head) {
     while (*head != NULL) {
         node* temp = *head;
@@ -96,13 +101,15 @@ void freeList(node** head) {
 void createLaundry() {
     char nama[50];
     float berat;
-
+    
+    // Ngebuka file dalam mode append lalu proteksi jika file tidak dapat diakses
     FILE* file = fopen(FILE_NAME, "a");
     if (file == NULL) {
         printf("Gagal membuka file!\n");
         return;
     }
 
+    // Proses input laundry dengan id otomatis urut
     int id = increment(); // ID otomatis urut
     printf("ID Pelanggan : %d\n", id);
     inputString("Masukkan Nama Pelanggan: ", nama, sizeof(nama));
@@ -117,9 +124,9 @@ void createLaundry() {
     printf("Data Berhasil Ditambahkan.\n");
 }
 
-// ini read
+// ini read, intinya mindahin data dari file ke RAM, trus dicetak deh
 void readLaundry() {
-    FILE* file = fopen(FILE_NAME, "r");
+    FILE* file = fopen(FILE_NAME, "r"); // Seperti biasa ngebuka file dalam mode read sekarang dengan ada proteksi
     if (file == NULL) {
         printf("Belum ada data laundry atau file tidak ditemukan.\n");
         return;
@@ -224,7 +231,7 @@ void editLaundry() {
     freeList(&head); // Bersihkan memori RAM
 }
 
-// ==================== D - DELETE (Memuat ke RAM dulu) ====================
+// ini delete y
 void deleteLaundry() {
     FILE* file = fopen(FILE_NAME, "r");
     if (file == NULL) {
