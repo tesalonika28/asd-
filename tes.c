@@ -18,7 +18,6 @@ const char FILE_NAME[] = "Laundry.txt";
 
 // ==================== PROTEKSI INPUT ====================
 
-// Fungsi proteksi input float (Validasi angka desimal/bulat > 0)
 float inputFloat(char* prompt) {
     char input[100];      
     float value;         
@@ -39,12 +38,11 @@ float inputFloat(char* prompt) {
     }
 }
 
-// Fungsi proteksi input string (Validasi anti-kosong & anti-spasi demi keamanan database)
 void inputString(char* prompt, char* str, int size) {  
     while (1) {                               
         printf("%s", prompt);              
         if (fgets(str, size, stdin) != NULL) {
-            str[strcspn(str, "\n")] = '\0'; // Hapus karakter newline (\n) di akhir
+            str[strcspn(str, "\n")] = '\0';
             
             if (strlen(str) == 0) {            
                 printf("[ERROR] Input tidak boleh kosong!\n");
@@ -69,7 +67,6 @@ void inputString(char* prompt, char* str, int size) {
     }
 }
 
-// Fungsi pembantu untuk mengubah string menjadi huruf kecil (Untuk Searching Case-Insensitive)
 void toLowerCase(char* dest, const char* src) {
     int i = 0;
     while (src[i] != '\0') {
@@ -121,7 +118,6 @@ void freeList(node** head) {
     }
 }
 
-// Fungsi pembantu untuk menukar data antar node (Digunakan saat Sorting)
 void swapNodeData(node* a, node* b) {
     int tempId = a->id;
     char tempNama[50];
@@ -141,7 +137,6 @@ void swapNodeData(node* a, node* b) {
     strcpy(b->status, tempStatus);
 }
 
-// Fungsi untuk membaca dan memuat seluruh isi file ke Linked List RAM
 node* loadFromFile() {
     FILE* file = fopen(FILE_NAME, "r");
     if (file == NULL) return NULL;
@@ -158,7 +153,6 @@ node* loadFromFile() {
     return head;
 }
 
-// Fungsi cetak tabel data laundry dari head yang diberikan
 void printTable(node* head) {
     if (head == NULL) {
         printf("\nTidak ada data untuk ditampilkan.\n");
@@ -179,9 +173,55 @@ void printTable(node* head) {
     printf("=========================================================================\n");
 }
 
+// Fungsi pembantu: hitung berapa banyak node dengan nama tertentu
+int spotduplicate(node* head, char* nama) {
+    int count = 0;
+    node* temp = head;
+    while (temp != NULL) {
+        if (strcmp(temp->nama, nama) == 0) count++;
+        temp = temp->next;
+    }
+    return count;
+}
+
+// Fungsi pembantu: tampilkan semua data dengan nama tertentu, lalu minta user pilih ID
+// Mengembalikan ID yang dipilih user, atau -1 jika tidak valid
+int idduplicated(node* head, char* nama) {
+    node* temp = head;
+    node* hasilHead = NULL;
+
+    while (temp != NULL) {
+        if (strcmp(temp->nama, nama) == 0) {
+            pushBack(&hasilHead, temp->id, temp->nama, temp->berat, temp->status);
+        }
+        temp = temp->next;
+    }
+
+    printf("\n[INFO] Ditemukan lebih dari satu data dengan nama '%s'. Silahkan pilih berdasarkan ID:\n", nama);
+    printTable(hasilHead);
+    freeList(&hasilHead);
+
+    char idInput[10];
+    int idDipilih;
+    while (1) {
+    inputString("Masukkan ID data yang ingin diproses (atau 0 untuk batal): ", idInput, sizeof(idInput));
+    idDipilih = atoi(idInput);
+
+    if (idDipilih == 0) return -1; // opsi batal manual
+
+    temp = head;
+    while (temp != NULL) {
+        if (temp->id == idDipilih && strcmp(temp->nama, nama) == 0) {
+            return idDipilih;
+        }
+        temp = temp->next;
+    }
+    printf("[ERROR] ID tidak ditemukan atau tidak sesuai nama tersebut. Coba lagi.\n");
+}
+}
+
 // ==================== OPERASI CRUD ====================
 
-// [C] - CREATE DATA
 void createLaundry() {
     char nama[50];
     float berat;
@@ -203,7 +243,6 @@ void createLaundry() {
     printf("=> [SUKSES] Data Berhasil Ditambahkan ke File Database.\n");
 }
 
-// [R] - READ DATA
 void readLaundry() {
     node* head = loadFromFile();
     if (head == NULL) {
@@ -214,7 +253,7 @@ void readLaundry() {
     freeList(&head); 
 }
 
-// [U] - UPDATE DATA
+// [U] - UPDATE DATA (sudah mendukung pilih ID kalau nama duplikat)
 void editLaundry() {
     node* head = loadFromFile();
     if (head == NULL) {
@@ -225,22 +264,45 @@ void editLaundry() {
     char cari[50];
     inputString("\nMasukkan nama pelanggan yang ingin di-edit statusnya: ", cari, sizeof(cari));
 
+    int jumlah = spotduplicate(head, cari);
+
+    if (jumlah == 0) {
+        printf("[INFO] Data atas nama '%s' tidak ditemukan.\n", cari);
+        freeList(&head);
+        return;
+    }
+
+    int idTarget = -1;
+    if (jumlah > 1) {
+        idTarget = idduplicated(head, cari);
+        if (idTarget == -1) {
+            freeList(&head);
+            return;
+        }
+    }
+
     node* temp = head;
     int ketemu = 0;
 
     while (temp != NULL) {
-        if (strcmp(temp->nama, cari) == 0) {
+        int cocok = (jumlah > 1)
+            ? (temp->id == idTarget && strcmp(temp->nama, cari) == 0)
+            : (strcmp(temp->nama, cari) == 0);
+
+        if (cocok) {
             printf("Data ditemukan! Status saat ini: %s\n", temp->status);
             printf("Pilih Status Baru (1. Diproses / 2. Selesai): ");
 
             char pilihanInput[10];
-            inputString("", pilihanInput, sizeof(pilihanInput)); 
-            
-            if (pilihanInput[0] == '2') strcpy(temp->status, "Selesai");
-            else strcpy(temp->status, "Diproses");
+            while (1) {
+                inputString("", pilihanInput, sizeof(pilihanInput));
+                if (pilihanInput[0] == '1') { strcpy(temp->status, "Diproses"); break; }
+                else if (pilihanInput[0] == '2') { strcpy(temp->status, "Selesai"); break; }
+                else printf("[ERROR] Pilihan tidak valid! Ketik 1 atau 2.\n");
+            }
 
             ketemu = 1;
-            printf("Status Berhasil Diperbarui di RAM.\n");
+            printf("Status Berhasil Diperbarui.\n");
             break; 
         }
         temp = temp->next;
@@ -262,7 +324,7 @@ void editLaundry() {
     freeList(&head); 
 }
 
-// [D] - DELETE DATA
+// [D] - DELETE DATA (sudah mendukung pilih ID kalau nama duplikat)
 void deleteLaundry() {
     node* head = loadFromFile();
     if (head == NULL) {
@@ -273,20 +335,41 @@ void deleteLaundry() {
     char hapus[50];
     inputString("\nMasukkan nama pelanggan yang ingin dihapus: ", hapus, sizeof(hapus));
 
+    int jumlah = spotduplicate(head, hapus);
+
+    if (jumlah == 0) {
+        printf("[INFO] Data atas nama '%s' tidak ditemukan.\n", hapus);
+        freeList(&head);
+        return;
+    }
+
+    int idTarget = -1;
+    if (jumlah > 1) {
+        idTarget = idduplicated(head, hapus);
+        if (idTarget == -1) {
+            freeList(&head);
+            return;
+        }
+    }
+
     node* temp = head;
     node* prev = NULL;
     int ketemu = 0;
 
     while (temp != NULL) {
-        if (strcmp(temp->nama, hapus) == 0) {
+        int cocok = (jumlah > 1)
+            ? (temp->id == idTarget && strcmp(temp->nama, hapus) == 0)
+            : (strcmp(temp->nama, hapus) == 0);
+
+        if (cocok) {
             ketemu = 1;
             if (prev == NULL) {
                 head = temp->next;
             } else {
                 prev->next = temp->next;
             }
+            printf("Data ID %d atas nama '%s' berhasil dihapus dari RAM.\n", temp->id, hapus);
             free(temp); 
-            printf("Data atas nama '%s' berhasil dihapus dari RAM.\n", hapus);
             break;
         }
         prev = temp;
@@ -311,7 +394,6 @@ void deleteLaundry() {
 
 // ==================== FITUR BARU: SEARCHING & SORTING ====================
 
-// SEARCHING: Berdasarkan Atribut NAMA (Case-Insensitive)
 void searchLaundry() {
     node* head = loadFromFile();
     if (head == NULL) {
@@ -326,14 +408,13 @@ void searchLaundry() {
     toLowerCase(keywordLow, keyword);
 
     node* temp = head;
-    node* searchResultHead = NULL; // Linked list baru khusus menyimpan hasil pencarian
+    node* searchResultHead = NULL;
     int ketemu = 0;
 
     while (temp != NULL) {
         char namaLow[50];
         toLowerCase(namaLow, temp->nama);
 
-        // Menggunakan strstr agar bisa mencari partial match (misal ketik "bu" ketemu "Budi")
         if (strstr(namaLow, keywordLow) != NULL) {
             pushBack(&searchResultHead, temp->id, temp->nama, temp->berat, temp->status);
             ketemu = 1;
@@ -352,7 +433,6 @@ void searchLaundry() {
     freeList(&searchResultHead);
 }
 
-// SORTING: Berdasarkan 2 Atribut Pilihan (ID Ascending / Berat Descending)
 void sortLaundry() {
     node* head = loadFromFile();
     if (head == NULL) {
@@ -365,9 +445,14 @@ void sortLaundry() {
     printf("\n1. Urutkan Berdasarkan ID (Urut Naik / Ascending)");
     printf("\n2. Urutkan Berdasarkan BERAT (Urut Turun / Descending)");
     inputString("\nPilih jenis sorting (1-2): ", menuSort, sizeof(menuSort));
+    
+    if (menuSort[0] != '1' && menuSort[0] != '2') {
+    printf("[ERROR] Pilihan sorting tidak valid! Harus 1 atau 2.\n");
+    freeList(&head);
+    return;
+}
 
     if (head->next == NULL) {
-        // Jika data cuma 1, tidak perlu proses sorting
         printTable(head);
         freeList(&head);
         return;
@@ -377,7 +462,6 @@ void sortLaundry() {
     node* ptr1;
     node* lptr = NULL;
 
-    // Proses Bubble Sort di Linked List RAM
     do {
         swapped = 0;
         ptr1 = head;
@@ -386,12 +470,10 @@ void sortLaundry() {
             int butuhTukar = 0;
 
             if (menuSort[0] == '1') {
-                // Atribut 1: ID - Urut Naik (Ascending)
                 if (ptr1->id > ptr1->next->id) {
                     butuhTukar = 1;
                 }
             } else if (menuSort[0] == '2') {
-                // Atribut 2: BERAT - Urut Turun (Descending)
                 if (ptr1->berat < ptr1->next->berat) {
                     butuhTukar = 1;
                 }
@@ -406,7 +488,7 @@ void sortLaundry() {
         lptr = ptr1;
     } while (swapped);
 
-    printf("\n[SUKSES] Data Berhasil Diurutkan di RAM:");
+    printf("\n[SUKSES] Data Berhasil Diurutkan.:");
     printTable(head);
     freeList(&head); 
 }
