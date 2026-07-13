@@ -368,7 +368,7 @@ void deleteLaundry() {
             } else {
                 prev->next = temp->next;
             }
-            printf("Data ID %d atas nama '%s' berhasil dihapus dari RAM.\n", temp->id, hapus);
+            printf("Data ID %d atas nama '%s' berhasil dihapus.\n", temp->id, hapus);
             free(temp); 
             break;
         }
